@@ -1,0 +1,3 @@
+nyacrossymath.tjstack.cloud {
+    reverse_proxy web:80
+}
