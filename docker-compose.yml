@@ -1,21 +1,6 @@
 services:
   web:
     build: .
-    restart: always
-
-  caddy:
-    image: caddy:alpine
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - web
+      - "8080:80"
     restart: always
-
-volumes:
-  caddy_data:
-  caddy_config:
