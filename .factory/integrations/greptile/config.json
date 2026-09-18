@@ -1,0 +1,7 @@
+{
+  "strictness": 2,
+  "triggerOnUpdates": true,
+  "statusCheck": true,
+  "shouldUpdateDescription": false,
+  "autoApprove": { "enabled": false }
+}

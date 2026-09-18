@@ -1,0 +1,8 @@
+.git
+.factory
+.worktrees
+node_modules
+tests
+test-results
+playwright-report
+.playwright-mcp
