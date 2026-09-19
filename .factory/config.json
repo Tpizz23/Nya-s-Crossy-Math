@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "base_ref": "main",
+  "checks": [
+    {
+      "name": "unit",
+      "timeout_seconds": 120,
+      "argv": [
+        "npm",
+        "test"
+      ]
+    },
+    {
+      "name": "syntax-assets",
+      "timeout_seconds": 120,
+      "argv": [
+        "npm",
+        "run",
+        "check"
+      ]
+    },
+    {
+      "name": "browser",
+      "timeout_seconds": 240,
+      "argv": [
+        "npm",
+        "run",
+        "test:browser"
+      ]
+    }
+  ],
+  "review": {
+    "provider": "greptile",
+    "max_iterations": 3,
+    "required_for_delivery": true
+  }
+}

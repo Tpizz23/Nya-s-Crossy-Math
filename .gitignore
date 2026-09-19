@@ -1,0 +1,11 @@
+
+# Software factory local artifacts
+/.worktrees/
+/.factory/tasks/*/evidence/
+/.factory/tasks/*/delivery.md
+__pycache__/
+*.pyc
+node_modules/
+test-results/
+playwright-report/
+.DS_Store

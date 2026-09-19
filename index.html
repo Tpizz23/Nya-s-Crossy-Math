@@ -1,49 +1,136 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#d9edf0" />
+    <meta
+      name="description"
+      content="A little hop. A little math. A big adventure. Explore Nya's colorful 3D math crossing game."
+    />
     <title>Nya's Crossy Math</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-        #game {
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            overflow: hidden;
-        }
-    </style>
-</head>
-<body>
-    <div id="game"></div>
-
-    <!-- Phaser 3 from CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-
-    <!-- Load game files in dependency order -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ctext y='32' font-size='32'%3E🐸%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main id="app">
+      <div id="world"></div>
+      <header class="topbar">
+        <a class="wordmark" href="./" aria-label="Nya's Crossy Math home"
+          ><span class="brand-frog" aria-hidden="true">▰</span> nya's
+          <span>crossy math</span></a
+        >
+        <div class="top-actions">
+          <span class="best-label">Personal best <b id="best">0</b></span
+          ><button
+            id="sound"
+            class="icon-button"
+            aria-label="Mute sound"
+            aria-pressed="false"
+          >
+            ♪
+          </button>
+        </div>
+      </header>
+      <section id="home" class="home">
+        <div class="intro">
+          <div class="adventure-label">
+            <span></span> A little adventure for a growing mind
+          </div>
+          <h1>Big hops.<br />Brighter minds.</h1>
+          <p>
+            Cross a colorful little world,<br />one hop and one answer at a
+            time.
+          </p>
+          <div class="setup">
+            <fieldset>
+              <legend>What shall we practice?</legend>
+              <div class="operation-options" id="operations">
+                <button data-op="addition" aria-pressed="true">
+                  <b>+</b>Add</button
+                ><button data-op="subtraction" aria-pressed="false">
+                  <b>−</b>Subtract</button
+                ><button data-op="multiplication" aria-pressed="false">
+                  <b>×</b>Multiply</button
+                ><button data-op="division" aria-pressed="false">
+                  <b>÷</b>Divide
+                </button>
+              </div>
+            </fieldset>
+            <div class="setup-line">
+              <label for="difficulty">Challenge</label
+              ><select id="difficulty">
+                <option value="easy">Easy breezy</option>
+                <option value="medium">Getting warmer</option>
+                <option value="hard">Brain power</option>
+                <option value="expert">Math whiz</option>
+              </select>
+            </div>
+            <button id="play" class="primary">
+              Let's hop! <span aria-hidden="true">↗</span>
+            </button>
+            <button id="characters" class="character-button">
+              <span id="selected-emoji">🐸</span
+              ><span>Hopping with <b id="selected-name">Froggy</b></span
+              ><span aria-hidden="true">Change ›</span>
+            </button>
+          </div>
+          <div class="home-help">
+            <span class="keycaps">↑ ← ↓ →</span> to hop
+            <span class="help-dot">·</span> or use the touch controls
+          </div>
+        </div>
+        <div class="world-caption">
+          <span class="caption-dot"></span> The meadow awaits.<small
+            >Take your time. Find your way.</small
+          >
+        </div>
+        <footer>
+          Made for Nya. Ready for adventure.<button id="how-to">
+            How to play
+          </button>
+        </footer>
+      </section>
+      <section id="hud" hidden aria-label="Game controls">
+        <div class="score-panel">
+          <span>Distance</span><b id="distance">0</b
+          ><small><span id="score">0</span> points</small>
+        </div>
+        <div class="run-actions">
+          <div id="hearts" aria-label="3 hearts remaining">♥ ♥ ♥</div>
+          <button id="pause" class="icon-button" aria-label="Pause game">
+            Ⅱ
+          </button>
+        </div>
+        <div id="hint" class="hint">Your adventure starts with a hop.</div>
+        <div class="controls">
+          <button data-move="left" aria-label="Hop left">←</button>
+          <div>
+            <button data-move="up" aria-label="Hop forward">↑</button
+            ><button data-move="down" aria-label="Hop backward">↓</button>
+          </div>
+          <button data-move="right" aria-label="Hop right">→</button>
+        </div>
+        <div class="keyboard-hint">
+          Arrow keys / WASD <span>·</span> Esc to pause
+        </div>
+      </section>
+      <div id="notice" role="status" aria-live="polite"></div>
+      <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
+      <div id="loading" role="status">Building your little world…</div>
+      <noscript
+        ><div class="error-panel">
+          Please enable JavaScript to play Nya's Crossy Math.
+        </div></noscript
+      >
+    </main>
     <script src="js/data.js"></script>
     <script src="js/save.js"></script>
     <script src="js/sound.js"></script>
     <script src="js/math.js"></script>
-
-    <!-- Load all scenes -->
-    <script src="js/scenes/MainMenuScene.js"></script>
-    <script src="js/scenes/CharacterSelectScene.js"></script>
-    <script src="js/scenes/SettingsScene.js"></script>
-    <script src="js/scenes/OptionsScene.js"></script>
-    <script src="js/scenes/GameScene.js"></script>
-    <script src="js/scenes/QuizOverlayScene.js"></script>
-    <script src="js/scenes/GameOverScene.js"></script>
-
-    <!-- Load config and initialize game -->
-    <script src="js/config.js"></script>
-</body>
+    <script type="module" src="src/app.js"></script>
+  </body>
 </html>
