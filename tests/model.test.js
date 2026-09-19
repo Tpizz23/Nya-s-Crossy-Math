@@ -103,3 +103,27 @@ test("infinite terrain retains bounded objects and speeds with safe gaps", () =>
     assert.equal(laneType(i + 1), "grass");
   }
 });
+test("pausing mid-hop freezes the accepted move and resumes it exactly once", () => {
+  const g = new CrossingGame();
+  assert(g.move(0, 1));
+  g.tick(0.07);
+  const position = g.visualPosition();
+  const time = g.time;
+  const hazardX = g.lanes.get(3).objects[0].x;
+  g.pause();
+  g.tick(1);
+  assert.deepEqual(g.visualPosition(), position);
+  assert.equal(g.time, time);
+  assert.equal(g.lanes.get(3).objects[0].x, hazardX);
+  assert.equal(g.move(1, 0), false);
+  g.resume();
+  g.tick(0.05);
+  assert.equal(g.row, 0);
+  assert(g.visualPosition().row > position.row);
+  advance(g);
+  assert.equal(g.row, 1);
+  assert.equal(g.score, 10);
+  assert.equal(g.hop, null);
+  advance(g);
+  assert.equal(g.score, 10);
+});

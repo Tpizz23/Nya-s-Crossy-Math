@@ -331,6 +331,12 @@ export class World {
     this.camera.updateProjectionMatrix();
   }
   draw(game, dt, menu = false, reduced = false) {
+    // Lane IDs repeat across runs, but randomized lane geometry may differ.
+    if (this.game !== game) {
+      for (const view of this.lanes.values()) this.scene.remove(view.root);
+      this.lanes.clear();
+      this.game = game;
+    }
     for (const lane of game.lanes.values()) {
       if (!this.lanes.has(lane.id)) this.createLane(lane);
       const view = this.lanes.get(lane.id);

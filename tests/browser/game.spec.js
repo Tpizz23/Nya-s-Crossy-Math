@@ -169,3 +169,52 @@ test("mobile touch buttons, swipe, dialogs and layout", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(page.locator("#dialog")).not.toBeVisible();
 });
+
+test("new runs rebuild road and train headlights for the new direction", async ({
+  page,
+}) => {
+  await boot(page);
+  const result = await page.evaluate(async () => {
+    const { World } = await import("/src/world.js");
+    const { CrossingGame } = await import("/src/model.js");
+    const host = document.createElement("div");
+    host.style.cssText = "width:640px;height:480px";
+    document.body.append(host);
+    const world = new World(host);
+    try {
+      const first = new CrossingGame({ random: () => 0.2 });
+      world.draw(first, 0);
+      const oldRoots = [...world.lanes.values()].map((view) => view.root);
+      const next = new CrossingGame({ random: () => 0.8 });
+      world.draw(next, 0);
+      const headlights = [3, 12].map((id) => {
+        const mover = world.lanes.get(id).movers[0];
+        return mover.children
+          .filter((mesh) => mesh.material.color.getHex() === 0xffe6a2)
+          .map((mesh) => Math.sign(mesh.position.x));
+      });
+      const roots = [...world.lanes.values()].map((view) => view.root);
+      world.draw(next, 0.01);
+      return {
+        headlights,
+        removed: oldRoots.every((root) => root.parent === null),
+        stable: roots.every(
+          (root, i) => root === [...world.lanes.values()][i].root,
+        ),
+        count: world.lanes.size,
+        expectedCount: next.lanes.size,
+      };
+    } finally {
+      world.resizeObserver.disconnect();
+      world.renderer.dispose();
+      host.remove();
+    }
+  });
+  expect(result.headlights).toEqual([
+    [1, 1],
+    [1, 1],
+  ]);
+  expect(result.removed).toBe(true);
+  expect(result.stable).toBe(true);
+  expect(result.count).toBe(result.expectedCount);
+});

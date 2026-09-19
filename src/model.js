@@ -165,7 +165,6 @@ export class CrossingGame {
   pause() {
     if (this.status === "playing") {
       this.status = "paused";
-      this.hop = null;
     }
   }
   resume() {
