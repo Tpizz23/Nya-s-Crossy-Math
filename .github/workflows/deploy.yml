@@ -1,0 +1,26 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches: ["codex/crossy-3d"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hostinger-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Deploy website
+        uses: hostinger/deploy-on-vps@v2
+        with:
+          api-key: ${{ secrets.HOSTINGER_API_KEY }}
+          virtual-machine: ${{ vars.HOSTINGER_VM_ID }}
+          project-name: nyas-crossy-math
+          docker-compose-path: docker-compose.yml
