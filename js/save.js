@@ -2,6 +2,36 @@
 
 class SaveManager {
   static SAVE_KEY = "nya_math_game_save";
+  static PLAYER_KEY = "nya_math_game_player";
+  static activePlayer = null;
+
+  static getPlayer() {
+    if (this.activePlayer) return this.activePlayer;
+    try {
+      this.activePlayer =
+        localStorage.getItem(this.PLAYER_KEY) === "ariana" ? "ariana" : "nya";
+    } catch {
+      this.activePlayer = "nya";
+    }
+    // Each tab keeps its own selected player until explicitly switched or reloaded.
+    return this.activePlayer;
+  }
+
+  static setPlayer(player) {
+    this.activePlayer = player === "ariana" ? "ariana" : "nya";
+    try {
+      localStorage.setItem(this.PLAYER_KEY, this.activePlayer);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  static getSaveKey() {
+    return this.getPlayer() === "ariana"
+      ? "nya_math_game_save_ariana"
+      : this.SAVE_KEY;
+  }
 
   // Get default save data structure
   static getDefaults() {
@@ -19,7 +49,7 @@ class SaveManager {
   // Load save data from localStorage
   static load() {
     try {
-      const savedData = localStorage.getItem(this.SAVE_KEY);
+      const savedData = localStorage.getItem(this.getSaveKey());
       if (!savedData) {
         return this.getDefaults();
       }
@@ -70,7 +100,7 @@ class SaveManager {
   // Save data to localStorage
   static save(data) {
     try {
-      localStorage.setItem(this.SAVE_KEY, JSON.stringify(data));
+      localStorage.setItem(this.getSaveKey(), JSON.stringify(data));
       return true;
     } catch (error) {
       console.error("Failed to save data:", error);

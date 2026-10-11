@@ -46,28 +46,56 @@
             time.
           </p>
           <div class="setup">
-            <fieldset>
-              <legend>What shall we practice?</legend>
-              <div class="operation-options" id="operations">
-                <button data-op="addition" aria-pressed="true">
-                  <b>+</b>Add</button
-                ><button data-op="subtraction" aria-pressed="false">
-                  <b>−</b>Subtract</button
-                ><button data-op="multiplication" aria-pressed="false">
-                  <b>×</b>Multiply</button
-                ><button data-op="division" aria-pressed="false">
-                  <b>÷</b>Divide
+            <fieldset class="player-picker">
+              <legend>Who’s playing?</legend>
+              <div class="player-options">
+                <button data-player="nya" aria-pressed="true">
+                  <span aria-hidden="true">🦊</span
+                  ><span><b>Nya</b><small>Age 7 · Math adventures</small></span>
+                </button>
+                <button data-player="ariana" aria-pressed="false">
+                  <span aria-hidden="true">🐣</span
+                  ><span
+                    ><b>Ariana</b
+                    ><small>Age 3 · Little discoveries</small></span
+                  >
                 </button>
               </div>
             </fieldset>
-            <div class="setup-line">
-              <label for="difficulty">Challenge</label
-              ><select id="difficulty">
-                <option value="easy">Easy breezy</option>
-                <option value="medium">Getting warmer</option>
-                <option value="hard">Brain power</option>
-                <option value="expert">Math whiz</option>
-              </select>
+            <div id="math-settings">
+              <fieldset>
+                <legend>What shall we practice?</legend>
+                <div class="operation-options" id="operations">
+                  <button data-op="addition" aria-pressed="true">
+                    <b>+</b>Add</button
+                  ><button data-op="subtraction" aria-pressed="false">
+                    <b>−</b>Subtract</button
+                  ><button data-op="multiplication" aria-pressed="false">
+                    <b>×</b>Multiply</button
+                  ><button data-op="division" aria-pressed="false">
+                    <b>÷</b>Divide
+                  </button>
+                </div>
+              </fieldset>
+              <div class="setup-line">
+                <label for="difficulty">Challenge</label
+                ><select id="difficulty">
+                  <option value="easy">Easy breezy</option>
+                  <option value="medium">Getting warmer</option>
+                  <option value="hard">Brain power</option>
+                  <option value="expert">Math whiz</option>
+                </select>
+              </div>
+            </div>
+            <div id="preschool-settings" hidden>
+              <b>A little of everything</b>
+              <p>
+                Counting · Number names · Shapes<br />Colors · Repeating
+                patterns
+              </p>
+              <small
+                >Picture choices, with a button to hear each question.</small
+              >
             </div>
             <button id="play" class="primary">
               Let's hop! <span aria-hidden="true">↗</span>
