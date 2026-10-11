@@ -2,6 +2,17 @@
 
 A static, browser-based 3D math adventure. Hop through a miniature meadow, dodge traffic, ride logs and watch for trains. Solve addition, subtraction, multiplication or division questions to earn bonuses and recover from bumps. All 30 character unlocks and the existing `nya_math_game_save` progression remain supported on the same browser and origin.
 
+## Choose your player
+
+The main menu has two learning paths:
+
+- **Nya (age 7):** addition, subtraction, multiplication and division with the existing difficulty choices.
+- **Ariana (age 3):** counting 1–5 apples, matching a number word to an object group, identifying basic shapes and colors, and completing simple AB repeating patterns. Questions cycle through all five skills, including at rescue stops, with three large picture answers and no automatic difficulty growth.
+
+Use **Hear question** to read a preschool prompt aloud. This uses the browser's speech synthesis, respects the sound toggle and stops when a question closes. Voice availability and quality depend on the browser/device. If speech is unavailable, the pictures and written prompt still work for playing together with a grown-up.
+
+Player choice is remembered in this browser. Scores, unlocks, character selections and preferences are separate: Nya keeps the original `nya_math_game_save` data; Ariana starts with `nya_math_game_save_ariana`. No existing progress is overwritten. The crossing rules and three-heart recovery loop are shared by both players.
+
 ## Play locally
 
 ```sh
@@ -32,6 +43,7 @@ Browser tests use an installed Google Chrome through Playwright, run against por
 
 - `src/model.js`: renderer-independent crossing simulation, lanes, collisions, score and recovery.
 - `src/world.js`: Three.js orthographic world, shared geometry/materials, shadows and camera.
+- `src/preschool.js`: bounded preschool question generation and local SVG picture rendering.
 - `src/app.js`: accessible HTML menus, quiz, controls, sound and persistence integration.
 - `js/data.js`, `js/math.js`, `js/save.js`, `js/sound.js`: retained game data and services.
 - `js/scenes/`, `js/config.js`: original Phaser implementation retained as historical reference, no longer loaded.

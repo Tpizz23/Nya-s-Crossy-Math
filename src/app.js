@@ -1,5 +1,6 @@
 import { CrossingGame } from "./model.js";
 import { World } from "./world.js";
+import { PreschoolQuestions, renderPicture } from "./preschool.js";
 const $ = (selector) => document.querySelector(selector);
 const dialog = $("#dialog");
 let world,
@@ -14,6 +15,7 @@ let lastStatus = "playing",
   lastFrame = performance.now(),
   focusBeforeDialog;
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+let player = SaveManager.getPlayer();
 let settings = SaveManager.load();
 let operation = settings.lastPlayedMathType,
   difficulty = settings.lastPlayedDifficulty;
@@ -30,6 +32,21 @@ function notice(text) {
   clearTimeout(noticeTimer);
   noticeTimer = setTimeout(() => $("#notice").classList.remove("show"), 2200);
 }
+function syncSoundButton() {
+  $("#sound").setAttribute("aria-pressed", String(!soundManager.enabled));
+  $("#sound").setAttribute(
+    "aria-label",
+    soundManager.enabled ? "Mute sound" : "Enable sound",
+  );
+  $("#sound").textContent = soundManager.enabled ? "♪" : "♪̸";
+}
+function stopSpeech() {
+  try {
+    window.speechSynthesis?.cancel();
+  } catch {
+    /* Speech is optional. */
+  }
+}
 function refreshHome() {
   settings = SaveManager.load();
   $("#best").textContent = settings.highScore.toLocaleString();
@@ -43,14 +60,29 @@ function refreshHome() {
       b.setAttribute("aria-pressed", String(b.dataset.op === operation)),
     );
   $("#difficulty").value = difficulty;
+  document
+    .querySelectorAll("[data-player]")
+    .forEach((button) =>
+      button.setAttribute(
+        "aria-pressed",
+        String(button.dataset.player === player),
+      ),
+    );
+  $("#math-settings").hidden = player === "ariana";
+  $("#preschool-settings").hidden = player !== "ariana";
+  document.body.classList.toggle("preschool", player === "ariana");
+  soundManager.enabled = settings.soundEnabled !== false;
+  syncSoundButton();
 }
 function openDialog(html) {
+  stopSpeech();
   if (!dialog.open) focusBeforeDialog = document.activeElement;
   dialog.innerHTML = html;
   if (!dialog.open) dialog.showModal();
   (dialog.querySelector("button:not(:disabled)") || dialog).focus();
 }
 function closeDialog() {
+  stopSpeech();
   dialog.close();
   focusBeforeDialog?.focus();
 }
@@ -70,13 +102,16 @@ function updateHud() {
           ? "Hop onto a log. It will carry you."
           : lane?.type === "road"
             ? "Watch the traffic. Find your gap."
-            : `Next math stop: ${game.nextQuiz} hops. No need to rush.`;
+            : `Next ${player === "ariana" ? "discovery" : "math stop"}: ${game.nextQuiz} hops. No need to rush.`;
 }
 function start() {
   closeDialog();
   SaveManager.updateLastPlayed(operation, difficulty);
   game = new CrossingGame({ difficulty });
-  generator = new MathProblemGenerator(operation, difficulty);
+  generator =
+    player === "ariana"
+      ? new PreschoolQuestions()
+      : new MathProblemGenerator(operation, difficulty);
   mode = "play";
   savedRun = false;
   pendingAnswer = null;
@@ -101,19 +136,61 @@ function home() {
   $("#play").focus();
 }
 function showQuiz() {
-  generator.nudgeCount = Math.min(10, Math.floor(game.furthest / 10));
+  if (player === "nya")
+    generator.nudgeCount = Math.min(10, Math.floor(game.furthest / 10));
   problem = generator.generate();
   pendingAnswer = null;
   const checkpoint = game.quizReason === "checkpoint";
-  openDialog(
-    `<div class="dialog-icon" aria-hidden="true">${checkpoint ? "✦" : "♥"}</div><div class="eyebrow">${checkpoint ? "A little math stop" : "A second chance"}</div><h2 id="dialog-title">${checkpoint ? "Give your brain a hop!" : "Let’s get you back."}</h2><p>${checkpoint ? "Solve this for bonus points." : "Solve this to keep your heart and hop to safety."}<br>Take as much time as you need.</p><div class="equation">${problem.displayString}</div><div class="answers">${problem.choices.map((n, i) => `<button data-answer="${n}" aria-label="Answer ${n}">${n}</button>`).join("")}</div><div class="feedback" role="status" aria-live="polite"></div><button id="continue" class="primary" hidden>Keep hopping</button>`,
-  );
+  if (player === "ariana") {
+    const speechAvailable =
+      "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+    const visuals = problem.items.map(renderPicture).join("");
+    const skillNames = {
+      counting: "Let’s count",
+      "number-name": "Number names",
+      shape: "Shape hunt",
+      color: "Color hunt",
+      pattern: "Pattern play",
+    };
+    openDialog(`<div class="eyebrow">Ariana’s little discoveries · ${skillNames[problem.skill]}</div><h2 id="dialog-title">${problem.prompt}</h2><p>${checkpoint ? "Point, count, and choose together." : "Choose an answer to hop back to safety."}</p>
+      <button id="hear-question" class="hear-button" ${!speechAvailable || !soundManager.enabled ? "disabled" : ""}>◖)) Hear question</button>
+      <small id="speech-help" class="speech-help">${!soundManager.enabled ? "Sound is off." : !speechAvailable ? "Ask a grown-up to read the question." : "Listen as many times as you like."}</small>
+      <div class="picture-question ${problem.skill === "pattern" ? "pattern-sequence" : ""}" data-skill="${problem.skill}">${visuals}${problem.skill === "pattern" ? '<span class="pattern-next" aria-label="What comes next?">?</span>' : ""}${problem.word ? `<span class="number-word">${problem.word}</span>` : ""}</div>
+      <div class="answers picture-answers">${problem.choices.map((choice) => `<button data-answer="${choice.id}" aria-label="${choice.label}">${renderPicture(choice)}${choice.kind === "number" ? "" : `<small>${choice.label}</small>`}</button>`).join("")}</div>
+      <div class="feedback" role="status" aria-live="polite"></div><button id="continue" class="primary" hidden>Keep hopping</button>`);
+    $("#hear-question").onclick = () => {
+      if (!soundManager.enabled || !speechAvailable) return;
+      try {
+        stopSpeech();
+        const utterance = new SpeechSynthesisUtterance(
+          pendingAnswer === null
+            ? problem.spokenPrompt
+            : $(".feedback").textContent,
+        );
+        utterance.lang = "en-US";
+        utterance.rate = 0.85;
+        const speechHelp = $("#speech-help");
+        utterance.onerror = (event) => {
+          if (["canceled", "interrupted"].includes(event.error)) return;
+          if (speechHelp?.isConnected)
+            speechHelp.textContent =
+              "Voice unavailable. Ask a grown-up to read along.";
+        };
+        window.speechSynthesis.speak(utterance);
+      } catch {
+        $("#speech-help").textContent =
+          "Voice unavailable. Ask a grown-up to read along.";
+      }
+    };
+  } else {
+    openDialog(
+      `<div class="dialog-icon" aria-hidden="true">${checkpoint ? "✦" : "♥"}</div><div class="eyebrow">${checkpoint ? "A little math stop" : "A second chance"}</div><h2 id="dialog-title">${checkpoint ? "Give your brain a hop!" : "Let’s get you back."}</h2><p>${checkpoint ? "Solve this for bonus points." : "Solve this to keep your heart and hop to safety."}<br>Take as much time as you need.</p><div class="equation">${problem.displayString}</div><div class="answers">${problem.choices.map((n) => `<button data-answer="${n}" aria-label="Answer ${n}">${n}</button>`).join("")}</div><div class="feedback" role="status" aria-live="polite"></div><button id="continue" class="primary" hidden>Keep hopping</button>`,
+    );
+  }
   dialog
     .querySelectorAll("[data-answer]")
     .forEach((button) =>
-      button.addEventListener("click", () =>
-        answer(Number(button.dataset.answer)),
-      ),
+      button.addEventListener("click", () => answer(button.dataset.answer)),
     );
   $("#continue").addEventListener("click", () => {
     game.answer(pendingAnswer);
@@ -131,16 +208,20 @@ function showQuiz() {
 }
 function answer(value) {
   if (pendingAnswer !== null) return;
-  pendingAnswer = value === problem.answer;
+  stopSpeech();
+  pendingAnswer = String(value) === String(problem.answer);
   sound(pendingAnswer ? "playCorrect" : "playWrong");
   dialog.querySelectorAll("[data-answer]").forEach((b) => {
     b.disabled = true;
-    if (Number(b.dataset.answer) === problem.answer) b.classList.add("correct");
-    else if (Number(b.dataset.answer) === value) b.classList.add("incorrect");
+    if (b.dataset.answer === String(problem.answer)) b.classList.add("correct");
+    else if (b.dataset.answer === String(value)) b.classList.add("incorrect");
   });
-  $(".feedback").textContent = pendingAnswer
-    ? "That’s it! Your path is clear."
-    : `${problem.operandA} ${OPERATION_SYMBOLS[operation]} ${problem.operandB} = ${problem.answer}. You’ll get the next one!`;
+  $(".feedback").textContent =
+    player === "ariana"
+      ? `${pendingAnswer ? "You found it!" : "Let’s look together."} ${problem.explanation}`
+      : pendingAnswer
+        ? "That’s it! Your path is clear."
+        : `${problem.operandA} ${OPERATION_SYMBOLS[operation]} ${problem.operandB} = ${problem.answer}. You’ll get the next one!`;
   $("#continue").hidden = false;
   $("#continue").textContent =
     !pendingAnswer && game.lives === 1 ? "See your adventure" : "Keep hopping";
@@ -215,6 +296,20 @@ function move(direction) {
 $("#play").onclick = start;
 $("#pause").onclick = pause;
 $("#characters").onclick = characters;
+document.querySelectorAll("[data-player]").forEach(
+  (button) =>
+    (button.onclick = () => {
+      SaveManager.updateLastPlayed(operation, difficulty);
+      player = button.dataset.player;
+      if (!SaveManager.setPlayer(player))
+        notice("Player selected. This browser can’t remember your choice.");
+      settings = SaveManager.load();
+      operation = settings.lastPlayedMathType;
+      difficulty = settings.lastPlayedDifficulty;
+      refreshHome();
+      sound("playTap");
+    }),
+);
 $("#operations").onclick = (event) => {
   const b = event.target.closest("[data-op]");
   if (b) {
@@ -228,18 +323,14 @@ $("#difficulty").onchange = (event) => {
 };
 $("#sound").onclick = () => {
   soundManager.toggle();
-  $("#sound").setAttribute("aria-pressed", String(!soundManager.enabled));
-  $("#sound").setAttribute(
-    "aria-label",
-    soundManager.enabled ? "Mute sound" : "Enable sound",
-  );
-  $("#sound").textContent = soundManager.enabled ? "♪" : "♪̸";
+  stopSpeech();
+  syncSoundButton();
   const saved = SaveManager.load();
   SaveManager.save({ ...saved, soundEnabled: soundManager.enabled });
 };
 $("#how-to").onclick = () => {
   openDialog(
-    '<div class="dialog-icon" aria-hidden="true">🐸</div><h2 id="dialog-title">Small hops. Big adventure.</h2><ol class="instructions"><li>Use the arrow keys, WASD, or the on-screen arrows. On the world, tap to hop forward or swipe in any direction.</li><li>Wait for a gap in traffic. Ride the logs across water. Flashing railway lights mean a train is coming.</li><li>Every five new rows, stop for math. A correct answer earns bonus points; a wrong answer costs one heart.</li><li>Bumped into something? Solve a question to save your heart. You always return to safe grass.</li><li>There’s no timer. Pause whenever you need. Collect points to unlock new friends!</li></ol><button id="got-it" class="primary">Got it!</button>',
+    '<div class="dialog-icon" aria-hidden="true">🐸</div><h2 id="dialog-title">Small hops. Big adventure.</h2><ol class="instructions"><li>Use the arrow keys, WASD, or the on-screen arrows. On the world, tap to hop forward or swipe in any direction.</li><li>Wait for a gap in traffic. Ride the logs across water. Flashing railway lights mean a train is coming.</li><li>Every five new rows, stop for a question. Nya practices math; Ariana explores counting, number names, shapes, colors, and patterns. A correct answer earns bonus points; a wrong answer costs one heart.</li><li>Bumped into something? Solve a question to save your heart. You always return to safe grass.</li><li>There’s no timer. Pause whenever you need. Collect points to unlock new friends!</li></ol><button id="got-it" class="primary">Got it!</button>',
   );
   $("#got-it").onclick = closeDialog;
 };
@@ -286,7 +377,10 @@ dialog.addEventListener("cancel", (event) => {
   }
 });
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) pause();
+  if (document.hidden) {
+    stopSpeech();
+    pause();
+  }
   lastFrame = performance.now();
 });
 let pointer;
