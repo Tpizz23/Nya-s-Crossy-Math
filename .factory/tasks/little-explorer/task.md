@@ -1,6 +1,6 @@
 # Preschool player and picture questions
 Task ID: little-explorer
-Stage: verify
+Stage: external review
 Branch/worktree: codex/little-explorer, .worktrees/little-explorer
 Base: origin/main d4323d3 (PR #1 merged, Greptile passed)
 
@@ -29,3 +29,18 @@ Branch codex/little-explorer from d4323d3; checkout .worktrees/little-explorer. 
 
 ## Final local review
 Factory run evidence/20261011T143741533982Z-6c6d0dd8/results.json passed all checks. Subsequent profile review found that a second tab changing the remembered player could redirect an active run's score into the other player's save. Added a reproducing regression test and cached initial player selection per tab; focused tests and final committed-revision checks follow. Preview now serves this branch on the original port 8175, preserving the local origin.
+
+## Acceptance evidence and final verification
+Committed revision 6338b71 passed factory run evidence/20261011T143957839536Z-2a862142/results.json: 19 unit tests, 9 Playwright browser journeys, JavaScript syntax and local-asset checks. No workspace mutation during checks. Screenshots copied into the evidence folder: menus desktop/mobile, Ariana counting/pattern, mobile correction. Original 3D menu captured as before-menu.png when available.
+- Player routing/settings/progress: browser player-switching + legacy-save tests, profiles.test.js isolation/reload/corruption/storage-blocked/cross-tab tests.
+- Five skills and 1–5 bounds: preschool.test.js 500-cycle validation and arithmetic/pattern checks; browser answers all five skills from rendered prompts/pictures.
+- Correct/wrong feedback, recovery/replay: preschool browser suite, plus original Nya flow and model regression suites.
+- Speech: mock verifies spoken prompts, unavailable/muted fallback, and late-error-after-close behavior. Actual audio/voice quality not manually tested.
+- Responsive UX: Chrome desktop 1440x900/mobile 390x844 screenshots inspected; three large answer targets and continue button visible. Physical devices and Safari/Firefox untested.
+No production merge/deployment performed. Preview serves this worktree on 8175. Repository main has an automatic deployment workflow, so merging would publish and is outside this task's current authorization.
+
+## Review submission
+Pushed codex/little-explorer and opened https://github.com/Tpizz23/Nya-s-Crossy-Math/pull/2. Greptile Review confirmed IN_PROGRESS for tested commit 6338b716190afde18efdbeea4d96ca7745de9e2e. Required external review is pending; next action is reading and triaging the completed review. Only local task/review records changed after commit.
+
+## Greptile P2 follow-up
+User requested fixing speech cancellation test coverage. Added a recording speech mock and assertions for cancellation after correct/incorrect answers, close, and hidden tab, plus exact feedback narration. Changes are confined to browser tests and factory records; production speech behavior already implements the requested paths. Run focused speech tests and all required factory checks, then push the reviewed branch for iteration 2. No merge/deployment.

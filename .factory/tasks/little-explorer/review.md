@@ -1,7 +1,9 @@
 # Review: little-explorer
-Status: awaiting submission
+Status: Valid Greptile finding fixed; verification and re-review pending
 Provider: Greptile (required)
-Iteration: 0
+Iteration: 1
+Submitted commit: 6338b716190afde18efdbeea4d96ca7745de9e2e
+Review URL: https://github.com/Tpizz23/Nya-s-Crossy-Math/pull/2
 
 ## Local review
 - Existing original save key retained for Nya; Ariana uses an independent key, with validated player choice and fallback for blocked storage. Unit and browser tests cover isolation and persistence.
@@ -14,4 +16,7 @@ Iteration: 0
 - Pin player selection per tab so switching players in another tab cannot redirect an active run to the wrong save. Reproduced with a failing regression test, then fixed by caching the initial player selection.
 
 ## External review
-Pending publication of the verified branch and a Greptile review for the submitted commit. No merge or deployment performed.
+Verified branch published and non-draft PR #2 opened. GitHub confirms Greptile Review IN_PROGRESS for submitted commit 6338b716190afde18efdbeea4d96ca7745de9e2e, started 2026-10-11T14:42:42Z. Await completed current-revision review and inline findings; no manual trigger comment needed. No merge or deployment performed.
+
+## Review iteration 1 finding and fix
+Greptile completed review of 6338b716190afde18efdbeea4d96ca7745de9e2e with one P2 finding: the speech mock's empty cancel() did not verify cancellation. Valid test coverage gap; production already calls stopSpeech on each requested path. Replaced the mock with cancel-call tracking and active narration state. Browser assertions start speech before correct/incorrect answers, dialog close, and a simulated hidden-tab visibility event, then require a new cancel call and stopped narration. Hear question must read the exact displayed feedback after correct and incorrect answers. Existing late-error guard coverage retained. Required checks and iteration 2 submission follow.

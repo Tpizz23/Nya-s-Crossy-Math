@@ -1,4 +1,39 @@
 import { test, expect } from "@playwright/test";
+async function mockSpeech(page) {
+  await page.addInitScript(() => {
+    window.speechMock = { cancelCalls: 0, speaking: false };
+    window.spoken = [];
+    Object.defineProperty(window, "speechSynthesis", {
+      value: {
+        cancel() {
+          window.speechMock.cancelCalls++;
+          window.speechMock.speaking = false;
+        },
+        speak(utterance) {
+          window.spoken.push(utterance.text);
+          window.lastUtterance = utterance;
+          window.speechMock.speaking = true;
+        },
+      },
+    });
+    window.SpeechSynthesisUtterance = class {
+      constructor(text) {
+        this.text = text;
+      }
+    };
+  });
+}
+async function startSpeech(page) {
+  await page.locator("#hear-question").click();
+  const state = await page.evaluate(() => window.speechMock);
+  expect(state.speaking).toBe(true);
+  return state.cancelCalls;
+}
+async function expectSpeechStopped(page, cancelCallsBefore) {
+  const state = await page.evaluate(() => window.speechMock);
+  expect(state.cancelCalls).toBeGreaterThan(cancelCallsBefore);
+  expect(state.speaking).toBe(false);
+}
 async function boot(page) {
   await page.addInitScript(() => {
     let seed = 123456;
@@ -79,23 +114,7 @@ test("all five preschool skills render, accept correct answers, speak and safely
   test.setTimeout(100000);
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.addInitScript(() => {
-    window.spoken = [];
-    Object.defineProperty(window, "speechSynthesis", {
-      value: {
-        cancel() {},
-        speak(u) {
-          window.spoken.push(u.text);
-          window.lastUtterance = u;
-        },
-      },
-    });
-    window.SpeechSynthesisUtterance = class {
-      constructor(text) {
-        this.text = text;
-      }
-    };
-  });
+  await mockSpeech(page);
   await boot(page);
   await page.locator("[data-player=ariana]").click();
   await page.screenshot({ path: "test-results/ariana-menu-desktop.png" });
@@ -109,8 +128,8 @@ test("all five preschool skills render, accept correct answers, speak and safely
     skills.push(skill);
     await expect(page.locator(".equation")).toHaveCount(0);
     await expect(page.locator("[data-answer]")).toHaveCount(3);
-    await page.locator("#hear-question").click();
-    expect(await page.evaluate(() => window.spoken.length)).toBe(i + 1);
+    const cancelCallsBeforeAnswer = await startSpeech(page);
+    expect(await page.evaluate(() => window.spoken.length)).toBe(i * 2 + 1);
     if (i === 0) {
       await page.waitForTimeout(500);
       await page.screenshot({ path: "test-results/ariana-counting.png" });
@@ -118,8 +137,14 @@ test("all five preschool skills render, accept correct answers, speak and safely
     if (i === 4)
       await page.screenshot({ path: "test-results/ariana-pattern.png" });
     await (await correctChoice(page)).click();
+    await expectSpeechStopped(page, cancelCallsBeforeAnswer);
     await expect(page.locator(".feedback")).toContainText("You found it!");
+    const feedback = await page.locator(".feedback").innerText();
+    const cancelCallsBeforeClose = await startSpeech(page);
+    expect(await page.evaluate(() => window.spoken.at(-1))).toBe(feedback);
     await page.locator("#continue").click();
+    await expect(page.locator("#dialog")).not.toBeVisible();
+    await expectSpeechStopped(page, cancelCallsBeforeClose);
     // Some browsers deliver speech errors after cancellation and dialog removal.
     await page.evaluate(() =>
       window.lastUtterance.onerror({ error: "audio-busy" }),
@@ -194,4 +219,46 @@ test("speech unavailable falls back to grown-up reading without blocking questio
   await (await correctChoice(page)).click();
   await page.locator("#continue").click();
   await expect(page.locator("#dialog")).not.toBeVisible();
+});
+
+test("speech stops on hidden tab, incorrect answer and dialog close; Hear question reads feedback", async ({
+  page,
+}) => {
+  await mockSpeech(page);
+  await boot(page);
+  await page.locator("[data-player=ariana]").click();
+  await page.locator("#play").click();
+  await nextQuestion(page);
+
+  const cancelCallsBeforeHide = await startSpeech(page);
+  // Simulate the browser visibility transition while narration is active.
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      value: true,
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expectSpeechStopped(page, cancelCallsBeforeHide);
+  await page.evaluate(() => {
+    delete document.hidden;
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+
+  const cancelCallsBeforeAnswer = await startSpeech(page);
+  const right = await correctChoice(page);
+  const answer = await right.getAttribute("data-answer");
+  await page
+    .locator(`[data-answer]:not([data-answer="${answer}"])`)
+    .first()
+    .click();
+  await expectSpeechStopped(page, cancelCallsBeforeAnswer);
+  await expect(page.locator(".feedback")).toContainText("Let’s look together.");
+
+  const feedback = await page.locator(".feedback").innerText();
+  const cancelCallsBeforeClose = await startSpeech(page);
+  expect(await page.evaluate(() => window.spoken.at(-1))).toBe(feedback);
+  await page.locator("#continue").click();
+  await expect(page.locator("#dialog")).not.toBeVisible();
+  await expectSpeechStopped(page, cancelCallsBeforeClose);
 });
